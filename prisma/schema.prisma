@@ -13,4 +13,14 @@ model User {
   email     String   @unique
   password  String
   createdAt DateTime @default(now())
+  items     Item[]
+}
+
+model Item {
+  id String @id @default(uuid())
+  name String @unique
+  category String @unique
+  price Float
+  authorId String
+  author User @relation(fields: [authorId], references: [id])
 }
