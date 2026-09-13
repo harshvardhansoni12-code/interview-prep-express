@@ -60,10 +60,9 @@ async function login(req, res) {
     }
 
     // jwt token is created
-    const token = jwt.sign(
+    const accessToken = jwt.sign(
       {
         userId: userExist.id,
-        email: userExist.email,
       },
       process.env.JWT_SECRET,
       {
@@ -71,15 +70,57 @@ async function login(req, res) {
       },
     );
     //
-    console.log(token);
+    console.log(accessToken);
+
+    const refreshToken = jwt.sign(
+      {
+        userId: userExist.id,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "7d",
+      },
+    );
+    console.log(refreshToken);
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
     res.json({
       message: "Login successful",
-      token,
+      accessToken,
     });
   } catch (e) {
     return res.status(500).json({ message: "internal server error" });
   }
 }
 
-export { register, login };
+async function refreshToken(req, res) {
+  const refreshToken = req.cookies.refreshToken;
+
+  if (!refreshToken) {
+    return res.status(401).json({
+      message: "no refresh token ecist",
+    });
+  }
+
+  const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+
+  const accessToken = jwt.sign(
+    {
+      id: decoded.id,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "15m" },
+  );
+  //
+  return res.status(201).json({
+    message: "Access token refreshed successfully",
+  });
+}
+
+export { register, login, refreshToken };
 //42:00
