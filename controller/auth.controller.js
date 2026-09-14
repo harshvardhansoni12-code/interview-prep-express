@@ -32,6 +32,33 @@ async function register(req, res) {
       return res.status(400).json({ message: "user not created" });
     }
 
+    const refreshToken = jwt.sign(
+      {
+        id: userCreated.id,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "7d",
+      },
+    );
+
+    const refreshTokenHash = bcrypt.hash(refreshToken, 10);
+    const session = await session.create({
+      userId: userCreated.id,
+      refreshTokenHash,
+      ip: req.ip,
+      userAgent: req.headers["user-agent"],
+    });
+    const accessToken = jwt.sign(
+      {
+        userId: userCreated.id,
+        sessionId: session.id,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "1h",
+      },
+    );
     res.status(201).json({ message: "user created successfully" });
   } catch (err) {
     console.log(err);
@@ -116,9 +143,24 @@ async function refreshToken(req, res) {
     process.env.JWT_SECRET,
     { expiresIn: "15m" },
   );
+
+  const newRefreshToken = jwt.sign(
+    {
+      id: decoded.id,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" },
+  );
   //
+  res.cookie("refreshToken", newRefreshToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "strict",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
   return res.status(201).json({
     message: "Access token refreshed successfully",
+    accessToken,
   });
 }
 

@@ -9,11 +9,12 @@ datasource db {
 
 model User {
   id        String   @id @default(uuid())
-  username  String   @unique
+  username  String   @unique 
   email     String   @unique
   password  String
   createdAt DateTime @default(now())
   items     Item[]
+  sessions Session[]
 }
 
 model Item {
@@ -23,4 +24,16 @@ model Item {
   price Float
   authorId String
   author User @relation(fields: [authorId], references: [id])
+}
+
+model Session{
+   id String  @id @default(uuid())
+   authorId String
+   author User @relation(fields: [authorId], references: [id])
+   refreshTokenHash String 
+   ip String
+   userAgent String
+   revoke Boolean @default(false)
+   createdAt DateTime @default(now())
+   UpdatedAt DateTime @default(now())
 }
